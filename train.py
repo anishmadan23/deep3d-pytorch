@@ -43,15 +43,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device= torch.device('cpu')
 print(device)
 max_epoch = 100
-# dataroot = '/home/apoorv/Documents/Practice/CV/Project/data_scene_flow/training/'
-dataroot = '../KITTI/training/'
 
-batch = 1
+dataroot = './data/train/'
+
+batch = 2
 save_after = 2
 lr = 0.0004
 save_file = 'view_syn_weights_l1with_scheduler.pth'
-# img_size = (96,320)
-img_size = (192,640)
+img_size = (96,320)
+# img_size = (192,640)
 
 momentum = 0.95
 weight_decay = 1.0e-4
@@ -65,7 +65,7 @@ if(resume):
 print(model)
 
 ########### Dataloader ###########
-train_dataset = MyDataset(dataroot, in_transforms = None, size = img_size)
+train_dataset = MyDataset(dataroot, in_transforms = None)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch, shuffle = True)
 
 print(len(train_dataloader))
@@ -96,23 +96,24 @@ while(epoch < max_epoch):
 	for j in ['train']:
 		dataloader = train_dataloader
 		for i,data in enumerate(dataloader):
-			left = data[0].to(device).float()
-			right = data[1].to(device).float()
+			left_orig = data[0].to(device).float()
+			left = data[1].to(device).float()
+			right = data[2].to(device).float()
 
 			optimizer.zero_grad()
-			output = model(left)
+			output = model(left_orig,left)
 			
 			criterion = nn.L1Loss().cuda()
 			loss = criterion(output, right)
 			loss.backward()
 			optimizer.step()
 			writer.add_scalar('loss',loss.item())
+			print('\n')
+			print('Epoch={}, iteration={}, input_orig shape={}, model input shape={}, output shape={}, loss={}'.format(epoch, i, left_orig.shape, left.shape, right.shape, loss.item()))
 
-			print('Epoch={}, iteration={}, input shape={}, output shape={}, loss={}'.format(epoch, i, left.shape, right.shape, loss.item()))
-
-			if i % 50 == 0:
-				print(left.shape)
-				save_image(left, OUTPUTS_DIR + '{}_{}_scan.png'.format(epoch, i))
+			if i % 10 == 0:
+				# print(left.shape)
+				save_image(left_orig, OUTPUTS_DIR + '{}_{}_scan.png'.format(epoch, i))
 				save_image(right, OUTPUTS_DIR + '{}_{}_out.png'.format(epoch, i))			
 				save_image(output, OUTPUTS_DIR + '{}_{}_rgb.png'.format(epoch, i))
 				torch.save(model.state_dict(), '{}_{}_{}'.format(epoch, i, save_file))
