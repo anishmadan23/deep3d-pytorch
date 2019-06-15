@@ -44,7 +44,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 max_epoch = 100
 
-dataroot = './data/train/'
+train_dataroot = './data/train/'
+val_dataroot = './data/val/'
 
 batch = 2
 save_after = 2
@@ -65,19 +66,14 @@ if(resume):
 print(model)
 
 ########### Dataloader ###########
-train_dataset = MyDataset(dataroot, in_transforms = None)
+train_dataset = MyDataset(train_dataroot, in_transforms = None)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = batch, shuffle = True)
 
-print(len(train_dataloader))
+val_dataset = MyDataset(val_dataroot, in_transforms=None)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size = batch, shuffle=False)
 
-# Testing dataloader
-#for i,data in enumerate(train_dataloader):
-#	inn = data[0].float()
-#	out = data[1].float()
-#	print(inn.shape)
-#	print(out.shape)
-#sys.exit()
-
+dataloaders = {'train': train_dataloader, 'val': val_dataloader}
+dataset_sizes = {'train': len(train_dataset),'val':len(val_dataset)}
 ########### Criterion ###########
 optimizer = optim.Adam([
         {'params': [param for name, param in model.named_parameters() if name[-4:] == 'bias'],
@@ -90,33 +86,60 @@ lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 
 ########### Begin Training ###########
 epoch = 0
-
+best_loss = 100000
 while(epoch < max_epoch):
-	# lr_scheduler.step()
-	for j in ['train']:
-		dataloader = train_dataloader
-		for i,data in enumerate(dataloader):
+	since = time.time()
+	criterion = nn.L1Loss().cuda()
+
+	print('Epoch {}/{}'.format(epoch, max_epoch - 1))
+	print('-' * 10)
+
+	for phase in ['train','val']:
+		if phase=='train':
+			lr_scheduler.step()
+			model.train()
+		else:
+			model.eval()
+
+		running_loss = 0.0
+		
+		for iteration,data in enumerate(dataloaders[phase]):
 			left_orig = data[0].to(device).float()
 			left = data[1].to(device).float()
 			right = data[2].to(device).float()
 
 			optimizer.zero_grad()
-			output = model(left_orig,left)
-			
-			criterion = nn.L1Loss().cuda()
-			loss = criterion(output, right)
-			loss.backward()
-			optimizer.step()
-			writer.add_scalar('loss',loss.item())
-			print('\n')
-			print('Epoch={}, iteration={}, input_orig shape={}, model input shape={}, output shape={}, loss={}'.format(epoch, i, left_orig.shape, left.shape, right.shape, loss.item()))
 
-			if i % 10 == 0:
+			with torch.set_grad_enabled(phase == 'train'):
+				output = model(left_orig,left)
+				loss = criterion(output, right)
+
+				if phase=='train':
+					loss.backward()
+					optimizer.step()
+
+					writer.add_scalar('loss',loss.item())
+
+			print('Epoch {}, Iteration: {}, Loss: {}'.format(epoch,iteration,loss.item()))
+			running_loss += loss.item() * left.size(0)
+
+			if iteration % 200 == 0 and phase=='val':
 				# print(left.shape)
-				save_image(left_orig, OUTPUTS_DIR + '{}_{}_scan.png'.format(epoch, i))
-				save_image(right, OUTPUTS_DIR + '{}_{}_out.png'.format(epoch, i))			
-				save_image(output, OUTPUTS_DIR + '{}_{}_rgb.png'.format(epoch, i))
-				torch.save(model.state_dict(), '{}_{}_{}'.format(epoch, i, save_file))
+				save_image(left_orig, OUTPUTS_DIR + '{}_{}_scan.png'.format(epoch, iteration))
+				save_image(right, OUTPUTS_DIR + '{}_{}_out.png'.format(epoch, iteration))			
+				save_image(output, OUTPUTS_DIR + '{}_{}_rgb.png'.format(epoch, iteration))
+		
+
+		epoch_loss = running_loss / dataset_sizes[phase]
+
+		print('{} Loss: {:.4f}'.format(phase, epoch_loss))
+
+		if phase == 'val' and running_loss<best_loss:
+			best_loss = running_loss
+			torch.save(model.state_dict(), '{}_{}_{}'.format(epoch, iteration, save_file))
+
+	time_elapsed = time.time() - since
+	print('Epoch Time {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
 	epoch+=1
 
