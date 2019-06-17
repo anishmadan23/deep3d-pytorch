@@ -31,31 +31,31 @@ RES_DIR = RES_DIR + now + '/'
 
 device = torch.device('cuda')
 print(device)
-dataroot = '/home/apoorv/Documents/Practice/CV/Project/data_scene_flow/testing'
-weight_file = './99_20_view_syn_weights_l1with_scheduler.pth'
+dataroot = './data/test/'
+weight_file = './72_296_view_syn_weights_l1with_scheduler.pth'
 batch = 1
 img_size = (96, 320)
 
 model = Deep3d(device=device).to(device)
 model.load_state_dict(torch.load(weight_file))
 
-test_dataset = MyDataset(dataroot, in_transforms = None, size = img_size)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch, shuffle = True)
+test_dataset = MyDataset(dataroot, in_transforms = None)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch, shuffle = False)
 
 print(len(test_dataloader))
 
 model.eval()
-for i, data in enumerate(test_dataloader):
+for i, data in enumerate(
+    test_dataloader):
     with torch.no_grad():
-        if(i>100):
-            break
-        left = data[0].to(device).float()
-        right = data[1].to(device).float()
+        left_orig = data[0].to(device).float()
+        left = data[1].to(device).float()
+        right = data[2].to(device).float()
+        
+        output = model(left_orig,left)
 
-        output = model(left)
-
-        save_image(left, RES_DIR + '_{}_scan.png'.format(i))
-        save_image(right, RES_DIR + '_{}_out.png'.format(i))            
-        save_image(output, RES_DIR + '_{}_rgb.png'.format(i))
+        save_image(left_orig, RES_DIR + '{}_left.png'.format(i))
+        save_image(right, RES_DIR + '{}_right.png'.format(i))            
+        save_image(output, RES_DIR + '{}_.genR.png'.format(i))
         print(output.shape, left.shape, right.shape)
         # sys.exit()

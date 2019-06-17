@@ -13,8 +13,8 @@ class MyDataset(data.Dataset):
 		self.rightpath = os.path.join(root, 'right')
 		self.rightimg = os.listdir(self.rightpath)
 
-		# self.leftimg.sort()
-		# self.rightimg.sort()
+		self.leftimg.sort()
+		self.rightimg.sort()
 
 		# self.leftimg = self.leftimg[::2]
 		# self.rightimg = self.rightimg[::2]
