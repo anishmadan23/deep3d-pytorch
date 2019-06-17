@@ -52,7 +52,7 @@ save_after = 2
 lr = 0.0004
 save_file = 'view_syn_weights_l1with_scheduler.pth'
 img_size = (96,320)
-# img_size = (192,640)
+
 
 momentum = 0.95
 weight_decay = 1.0e-4

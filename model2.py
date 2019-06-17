@@ -59,7 +59,7 @@ class Deep3d(nn.Module):
                                             nn.Dropout(p=0.5),
                                             nn.Linear(4096,1950)])          # 1950=65(disparity range)*10*3(10*3 is feature map size)
 
-        # scale*=2
+
         self.deconv_6 = nn.Sequential(*[nn.ConvTranspose2d(65,65,kernel_size=scale*2,stride=scale,padding=(scale//2,scale//2))])
 
         self.upconv_final = nn.Sequential(*[nn.ConvTranspose2d(65,65,kernel_size=(4,4),stride=2,padding=(1,1)),
@@ -68,7 +68,6 @@ class Deep3d(nn.Module):
                                             nn.Softmax(dim=1)])
 
         for block in [self.deconv_1,self.deconv_2,self.deconv_3,self.deconv_4,self.deconv_5,self.deconv_6,self.linear_module,self.upconv_final]:
-        # for block in [self.deconv_1,self.deconv_2,self.deconv_3,self.deconv_4,self.deconv_5,self.deconv_6,self.upconv_final]:
             for m in block:
                 if isinstance(m, nn.Conv2d):
                     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -114,16 +113,14 @@ class Deep3d(nn.Module):
         
         out = torch.zeros(pred[0].shape).to(self.device)
         for p in pred:
-            # print('p',p.shape)
-            # print('out',out.shape)
 
             out = torch.add(out, p)
 
         out = self.upconv_final(out)               # to be elt wise multiplied with shifted left views
 
-        # print('out shape',out.shape)
-        out = F.interpolate(out,scale_factor=4,mode='bilinear')
-        # print('new_out shape',out.shape)
+
+        out = F.interpolate(out,scale_factor=4,mode='bilinear') # upscale to match left input size
+
 
         new_right_image = torch.zeros(x_copy.size()).to(self.device)
         stacked_shifted_view = None
@@ -136,9 +133,9 @@ class Deep3d(nn.Module):
             elif depth_map_idx==0:
                 shifted_input_view = x_copy
             else:
-                # print(depth_map_idx)
+
                 shifted_input_view[:,:,:,depth_map_idx:] = x_copy[:,:,:,:-depth_map_idx]
-            # print(shifted_input_view.shape)
+
 
             if stacked_shifted_view is None:
                 stacked_shifted_view = shifted_input_view.unsqueeze(1)
@@ -149,19 +146,12 @@ class Deep3d(nn.Module):
                 stacked_out = out[:,depth_map_idx+33:depth_map_idx+34,:,:].unsqueeze(1)
             else:
                 stacked_out = torch.cat((stacked_out,out[:,depth_map_idx+33:depth_map_idx+34,:,:].unsqueeze(1)),dim=1)
-        # print("SO",stacked_out.shape)
-        # print(stacked_shifted_view.shape)
-        #     new_right_image += torch.mul(shifted_input_view,out[:,depth_map_idx+33:depth_map_idx+34,:,:])
-        # return new_right_image
+        
         softmaxed_stacked_shifted_view = stacked_shifted_view
-        # softmaxed_stacked_shifted_view = F.softmax(stacked_shifted_view,dim=1)
-        # print(softmaxed_stacked_shifted_view.shape)
 
         mult_soft_shift_out = torch.mul(stacked_out,softmaxed_stacked_shifted_view)
-        # print('mult',mult_soft_shift_out.shape)
 
         final_rt_image = torch.sum(mult_soft_shift_out,dim=1)
-        # print('final_rt_image.shape',final_rt_image.shape)
 
         return final_rt_image
 
@@ -169,10 +159,8 @@ class Deep3d(nn.Module):
 
 
 
-if(__name__=='__main__'):
-    vgg16 = torchvision.models.vgg16(pretrained=True)
-    # print(vgg16)
-    model = Deep3d().to(torch.device('cpu'))
-    out = model(torch.randn(10,3,384,1280),torch.randn(10,3,96,320))
-    # model(torch.randn(1,3,320,96))
+# if(__name__=='__main__'):
+#     vgg16 = torchvision.models.vgg16(pretrained=True)
+#     model = Deep3d().to(torch.device('cpu'))
+#     out = model(torch.randn(10,3,384,1280),torch.randn(10,3,96,320))
  

@@ -45,8 +45,7 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = batch, 
 print(len(test_dataloader))
 
 model.eval()
-for i, data in enumerate(
-    test_dataloader):
+for i, data in enumerate(test_dataloader):
     with torch.no_grad():
         left_orig = data[0].to(device).float()
         left = data[1].to(device).float()
