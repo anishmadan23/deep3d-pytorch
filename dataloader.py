@@ -1,9 +1,12 @@
-import torch
-import torch.utils.data as data
-import numpy as np
-import torchvision
 import os
-import scipy.misc as smi
+import torch
+import torchvision
+
+import numpy as np
+import skimage.io as io
+import torch.utils.data as data
+
+from skimage.transform import resize
 
 class MyDataset(data.Dataset):
 	def __init__(self, root, in_transforms = None, orig_size = (384, 1280),small_size=(96,320)):
@@ -16,8 +19,6 @@ class MyDataset(data.Dataset):
 		self.leftimg.sort()
 		self.rightimg.sort()
 
-		# self.leftimg = self.leftimg[::2]
-		# self.rightimg = self.rightimg[::2]
 		self.orig_size = orig_size
 		self.small_size= small_size
 
@@ -25,14 +26,14 @@ class MyDataset(data.Dataset):
 		return len(self.leftimg)
 
 	def __getitem__(self, index):
-		leftImage = smi.imread(os.path.join(self.leftpath, self.leftimg[index]))
+		leftImage = io.imread(os.path.join(self.leftpath, self.leftimg[index]))
 		# print(leftImage.shape)
-		leftImage_orig = smi.imresize(leftImage, self.orig_size, interp='bilinear') / 255.0
+		leftImage_orig = resize(leftImage, self.orig_size) / 255.0
 
-		leftImage_small = smi.imresize(leftImage, self.small_size, interp='bilinear') / 255.0
+		leftImage_small = resize(leftImage, self.small_size) / 255.0
 
-		rightImage_orig = smi.imread(os.path.join(self.rightpath, self.rightimg[index]))
-		rightImage_orig = smi.imresize(rightImage_orig, self.orig_size, interp='bilinear') /255.0
+		rightImage_orig = io.imread(os.path.join(self.rightpath, self.rightimg[index]))
+		rightImage_orig = resize(rightImage_orig, self.orig_size) /255.0
 
 		left_orig = torch.from_numpy(leftImage_orig)
 		left_orig = left_orig.permute([-1,0,1])
