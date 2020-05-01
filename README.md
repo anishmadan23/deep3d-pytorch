@@ -1,5 +1,5 @@
 # Deep3D-pytorch
-## Team Members: Anish Madan, Apoorv Khattar
+## Team Members: Anish Madan, Apoorv Khattar, Yash Tomar
 
 ## About the porject
 Estimating a right-view from a monocular image(to make a stereo pair of images) which respects the geometry of the scene is 
