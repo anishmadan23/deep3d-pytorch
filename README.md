@@ -11,6 +11,9 @@ convert 2D video to 3D, etc.
 ## Dataset
 We used the KITTI Stereo 2015 Dataset. The dataset consists of 200 training scenes and 200 test scenes, which include 4 color images per scene, in a lossless png format. This means that we have 400 left and right image pairs for training.
 
+## Model Weights
+The pretrained model can be downloaded from [here](https://drive.google.com/drive/folders/1txjqUjCcEvEkVS8QvNn1icrP34eh-crJ?usp=sharing) 
+
 ## Results
 The following are some results of our approach (from left to right- input left , ground truth right stereo image pair, generated stereo image pair, depth map generated using OpenCV for image pairs):
 
