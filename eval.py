@@ -17,7 +17,7 @@ from torch.optim import lr_scheduler
 from torchvision import datasets, models, transforms
 from tensorboardX import SummaryWriter
 
-from model2 import *
+from model_orig import *
 from dataloader import *
 
 RES_DIR = './results/'
@@ -32,7 +32,7 @@ RES_DIR = RES_DIR + now + '/'
 device = torch.device('cuda')
 print(device)
 dataroot = './data/test/'
-weight_file = './72_296_view_syn_weights_l1with_scheduler.pth'
+weight_file = './data/99_20_view_syn_weights_l1with_scheduler.pth'
 batch = 1
 img_size = (96, 320)
 
